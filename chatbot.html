@@ -26,34 +26,44 @@
                 window.location.href = '/'; // Redirect to login if no token found
                 return;
             }
+            const isProduction = baseUrl.includes("herokuapp");
+            const protocol = isProduction ? "wss" : "ws";
+            const socketUrl = `${protocol}://${baseUrl.replace(/^http(s)?:\/\//, '')}/ws/support/?query_string=${token}`;
 
-            fetch(`${baseUrl}/support/bot/`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                } else {
-                    throw new Error('Failed to fetch messages');
-                }
-            })
-            .then(data => {
+            const socket = new WebSocket(socketUrl);
+            socket.onopen = function(event) {
+                console.log('WebSocket connection established.');
+            };
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
                 const messagesDiv = document.getElementById('messages');
-                data.forEach(message => {
+                console.log(data)
+                
+                if (Array.isArray(data.message)) {
+                    data.message.forEach(message => {
+                        const messageElement = document.createElement('div');
+                        messageElement.textContent = `${message.sender}: ${message.content}`;
+                        messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'assistant-message');
+                        messagesDiv.appendChild(messageElement);
+                    });
+                } else {
                     const messageElement = document.createElement('div');
-                    messageElement.textContent = `${message.sender}: ${message.content}`;
-                    messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'assistant-message');
+                    messageElement.textContent = `${data.sender}: ${data.content}`;
+                    messageElement.classList.add(data.sender === 'user' ? 'user-message' : 'assistant-message');
                     messagesDiv.appendChild(messageElement);
-                });
-            })
-            .catch(error => {
-                console.error('Error:', error);
+                }
+            };
+
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
                 alert('An error occurred. Please try again.');
-            });
+            };
+
+            socket.onclose = function(event) {
+                console.log('WebSocket connection closed:', event);
+                alert('WebSocket connection closed. Please refresh the page.');
+            };
 
             const form = document.getElementById('message-form');
             form.addEventListener('submit', function(event) {
@@ -61,35 +71,9 @@
                 const messageInput = document.getElementById('message-input');
                 const message = messageInput.value;
 
-                fetch(`${baseUrl}/support/bot/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ content: message })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    } else {
-                        throw new Error('Failed to send message');
-                    }
-                })
-                .then(data => {
-                    const messagesDiv = document.getElementById('messages');
-                    data.forEach(message => {
-                        const messageElement = document.createElement('div');
-                        messageElement.textContent = `${message.sender}: ${message.content}`;
-                        messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'assistant-message');
-                        messagesDiv.appendChild(messageElement);
-                    });
-                    messageInput.value = '';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                });
+                socket.send(JSON.stringify({ message: message }));
+
+                messageInput.value = '';
             });
         });
     </script>
