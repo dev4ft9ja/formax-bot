@@ -26,11 +26,13 @@
                 window.location.href = '/'; // Redirect to login if no token found
                 return;
             }
+
             const isProduction = baseUrl.includes("herokuapp");
             const protocol = isProduction ? "wss" : "ws";
             const socketUrl = `${protocol}://${baseUrl.replace(/^http(s)?:\/\//, '')}/ws/support/?query_string=${token}`;
 
             const socket = new WebSocket(socketUrl);
+
             socket.onopen = function(event) {
                 console.log('WebSocket connection established.');
             };
@@ -38,18 +40,31 @@
             socket.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 const messagesDiv = document.getElementById('messages');
-                console.log(data)
-                
+                console.log(data);
+
+                const formatContent = (content) => {
+                    const formattedContent = content
+                        .replace(/\n/g, '<br>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                        .replace(/1\. (.*?)<br>/g, '<ol><li>$1</li>')      // Ordered list start
+                        .replace(/2\. (.*?)<br>/g, '<li>$1</li>')          // Ordered list item
+                        .replace(/3\. (.*?)<br>/g, '<li>$1</li>')          // Ordered list item
+                        .replace(/4\. (.*?)<br>/g, '<li>$1</li>')          // Ordered list item
+                        .replace(/5\. (.*?)<br>/g, '<li>$1</li></ol>')    // Ordered list end
+                        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g, '<a href="$2" target="_blank">$1</a>'); // Links
+                    return formattedContent;
+                }
+
                 if (Array.isArray(data.message)) {
                     data.message.forEach(message => {
                         const messageElement = document.createElement('div');
-                        messageElement.textContent = `${message.sender}: ${message.content}`;
+                        messageElement.innerHTML = `${formatContent(message.content)}`;
                         messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'assistant-message');
                         messagesDiv.appendChild(messageElement);
                     });
                 } else {
                     const messageElement = document.createElement('div');
-                    messageElement.textContent = `${data.sender}: ${data.content}`;
+                    messageElement.innerHTML = `${formatContent(data.content)}`;
                     messageElement.classList.add(data.sender === 'user' ? 'user-message' : 'assistant-message');
                     messagesDiv.appendChild(messageElement);
                 }
