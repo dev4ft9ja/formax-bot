@@ -57,16 +57,20 @@
 
                 if (Array.isArray(data.message)) {
                     data.message.forEach(message => {
-                        const messageElement = document.createElement('div');
-                        messageElement.innerHTML = `${formatContent(message.content)}`;
-                        messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'assistant-message');
-                        messagesDiv.appendChild(messageElement);
+                        if (message.sender === 'assistant') {
+                            const messageElement = document.createElement('div');
+                            messageElement.innerHTML = `${formatContent(message.content)}`;
+                            messageElement.classList.add('assistant-message');
+                            messagesDiv.appendChild(messageElement);
+                        }
                     });
                 } else {
-                    const messageElement = document.createElement('div');
-                    messageElement.innerHTML = `${formatContent(data.content)}`;
-                    messageElement.classList.add(data.sender === 'user' ? 'user-message' : 'assistant-message');
-                    messagesDiv.appendChild(messageElement);
+                    if (data.sender === 'assistant') {
+                        const messageElement = document.createElement('div');
+                        messageElement.innerHTML = `${formatContent(data.content)}`;
+                        messageElement.classList.add('assistant-message');
+                        messagesDiv.appendChild(messageElement);
+                    }
                 }
             };
 
@@ -85,6 +89,13 @@
                 event.preventDefault();
                 const messageInput = document.getElementById('message-input');
                 const message = messageInput.value;
+
+                // Display user's message instantly
+                const messagesDiv = document.getElementById('messages');
+                const userMessageElement = document.createElement('div');
+                userMessageElement.innerHTML = `${message}`;
+                userMessageElement.classList.add('user-message');
+                messagesDiv.appendChild(userMessageElement);
 
                 socket.send(JSON.stringify({ message: message }));
 
