@@ -5,6 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .chat-container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #chatbox {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+
+        .user-message {
+            align-self: flex-start;
+            background-color: #ebebeb;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 80%;
+        }
+
+        .my-message {
+            align-self: flex-end;
+            background-color: #dcf8c6;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 80%;
+        }
+        #message-form {
+            display: flex;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+        }
+        #message-form button {
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="chat-container">
@@ -20,6 +67,27 @@
     <script src="baseUrl.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+
+            // Function to get query parameters from the URL
+            function getQueryParams() {
+                const params = {};
+                const queryString = window.location.search.substring(1);
+                const queryArray = queryString.split('&');
+                queryArray.forEach(param => {
+                    const [key, value] = param.split('=');
+                    params[decodeURIComponent(key)] = decodeURIComponent(value);
+                });
+                return params;
+            }
+
+            // Store query parameters in local storage
+            const queryParams = getQueryParams();
+            for (const key in queryParams) {
+                if (queryParams.hasOwnProperty(key)) {
+                    localStorage.setItem(key, queryParams[key]);
+                }
+            }
+
             const token = localStorage.getItem('access_token');
             if (!token) {
                 alert('No access token found. Please log in again.');
@@ -27,9 +95,23 @@
                 return;
             }
 
+            const thread_id = localStorage.getItem('thread_id');
+            if (!thread_id) {
+                alert('thread_id not found');
+                window.location.href = 'all_messages.html'; // Redirect to all messages if no thread_id found
+                return;
+            }
+
+            const user_id = localStorage.getItem('user_id');
+            if (!user_id) {
+                alert('user_id not found');
+                window.location.href = 'all_messages.html'; // Redirect to all messages if no user_id found
+                return;
+            }
+
             const isProduction = baseUrl.includes("herokuapp");
             const protocol = isProduction ? "wss" : "ws";
-            const socketUrl = `${protocol}://${baseUrl.replace(/^http(s)?:\/\//, '')}/ws/support/?query_string=${token}`;
+            const socketUrl = `${protocol}://${baseUrl.replace(/^http(s)?:\/\//, '')}/ws/support/admin/?user_id=${user_id}&thread_id=${thread_id}&query_string=${token}`;
 
             const socket = new WebSocket(socketUrl);
 
@@ -53,24 +135,20 @@
                         .replace(/5\. (.*?)<br>/g, '<li>$1</li></ol>')    // Ordered list end
                         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s]+)\)/g, '<a href="$2" target="_blank">$1</a>'); // Links
                     return formattedContent;
-                }
+                };
 
                 if (Array.isArray(data.message)) {
                     data.message.forEach(message => {
-                        if (message.sender === 'assistant' || message.sender === 'admin') {
-                            const messageElement = document.createElement('div');
-                            messageElement.innerHTML = `${formatContent(message.content)}`;
-                            messageElement.classList.add('assistant-message');
-                            messagesDiv.appendChild(messageElement);
-                        }
+                        const messageElement = document.createElement('div');
+                        messageElement.innerHTML = `${formatContent(message.content)}`;
+                        messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'my-message');
+                        messagesDiv.appendChild(messageElement);
                     });
                 } else {
-                    if (data.sender === 'assistant') {
-                        const messageElement = document.createElement('div');
-                        messageElement.innerHTML = `${formatContent(data.content)}`;
-                        messageElement.classList.add('assistant-message');
-                        messagesDiv.appendChild(messageElement);
-                    }
+                    const messageElement = document.createElement('div');
+                    messageElement.innerHTML = `${formatContent(data.content)}`;
+                    messageElement.classList.add(data.sender === 'user' ? 'user-message' : 'my-message');
+                    messagesDiv.appendChild(messageElement);
                 }
             };
 
@@ -94,7 +172,7 @@
                 const messagesDiv = document.getElementById('messages');
                 const userMessageElement = document.createElement('div');
                 userMessageElement.innerHTML = `${message}`;
-                userMessageElement.classList.add('user-message');
+                userMessageElement.classList.add('my-message');
                 messagesDiv.appendChild(userMessageElement);
 
                 socket.send(JSON.stringify({ message: message }));

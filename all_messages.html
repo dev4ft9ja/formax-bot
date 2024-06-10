@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Requests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+        }
+        .message-thread {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .message {
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .sender {
+            font-weight: bold;
+        }
+        .content {
+            margin-left: 20px;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #888;
+        }
+        .user_id a {
+            color: blue;
+            text-decoration: none;
+        }
+        .user_id a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Requests</h1>
+        <div id="messages"></div>
+    </div>
+    <script src="baseUrl.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const token = localStorage.getItem("access_token");
+
+            if (!token) {
+                alert('No access token found. Please log in again.');
+                window.location.href = '/'; // Redirect to login if no token found
+                return;
+            }
+
+            fetch(`${baseUrl}/admin/support/messages/admin-requests/`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messagesContainer = document.getElementById("messages");
+                const threads = groupByThread(data);
+                console.log(data)
+
+                for (const threadId in threads) {
+                    const threadMessages = threads[threadId];
+                    const threadDiv = document.createElement("div");
+                    threadDiv.classList.add("message-thread");
+
+                    // Add "Reply thread" link once for the thread
+                    const userIdDiv = document.createElement("div");
+                    userIdDiv.classList.add("user_id");
+                    userIdDiv.innerHTML = `<a href="admin_support.html?thread_id=${threadMessages[0].thread_value}&user_id=${threadMessages[0].user_id}">Reply thread</a>`;
+                    threadDiv.appendChild(userIdDiv);
+
+                    threadMessages.forEach(message => {
+                        const messageDiv = document.createElement("div");
+                        messageDiv.classList.add("message");
+
+                        const senderDiv = document.createElement("div");
+                        senderDiv.classList.add("sender");
+                        senderDiv.textContent = message.sender;
+
+                        const contentDiv = document.createElement("div");
+                        contentDiv.classList.add("content");
+                        contentDiv.textContent = message.content;
+
+                        const timestampDiv = document.createElement("div");
+                        timestampDiv.classList.add("timestamp");
+                        timestampDiv.textContent = new Date(message.created).toLocaleString();
+
+                        messageDiv.appendChild(senderDiv);
+                        messageDiv.appendChild(contentDiv);
+                        messageDiv.appendChild(timestampDiv);
+
+                        threadDiv.appendChild(messageDiv);
+                    });
+
+                    messagesContainer.appendChild(threadDiv);
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching messages:", error);
+            });
+
+            function groupByThread(messages) {
+                return messages.reduce((threads, message) => {
+                    const threadId = message.thread;
+                    if (!threads[threadId]) {
+                        threads[threadId] = [];
+                    }
+                    threads[threadId].push(message);
+                    return threads;
+                }, {});
+            }
+        });
+    </script>
+</body>
+</html>

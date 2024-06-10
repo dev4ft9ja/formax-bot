@@ -34,7 +34,7 @@
                     response.json().then(data => {
                         console.log(data.access);
                         localStorage.setItem("access_token", data.access)
-                        window.location.href = 'chatbot.html';
+                        window.location.href = 'where_to.html';
                     });
                 } else {
                     response.json().then(data => {
