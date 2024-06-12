@@ -137,18 +137,39 @@
                     return formattedContent;
                 };
 
+                // if (Array.isArray(data.message)) {
+                //     data.message.forEach(message => {
+                //         const messageElement = document.createElement('div');
+                //         messageElement.innerHTML = `${formatContent(message.content)}`;
+                //         messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'my-message');
+                //         messagesDiv.appendChild(messageElement);
+                //     });
+                // } else {
+                //     const messageElement = document.createElement('div');
+                //     messageElement.innerHTML = `${formatContent(data.content)}`;
+                //     messageElement.classList.add(data.sender === 'user' ? 'user-message' : 'my-message');
+                //     messagesDiv.appendChild(messageElement);
+                // }
                 if (Array.isArray(data.message)) {
                     data.message.forEach(message => {
-                        const messageElement = document.createElement('div');
-                        messageElement.innerHTML = `${formatContent(message.content)}`;
-                        messageElement.classList.add(message.sender === 'user' ? 'user-message' : 'my-message');
-                        messagesDiv.appendChild(messageElement);
+                        if (message.sender === 'assistant' || message.sender === 'admin') {
+                            const messageElement = document.createElement('div');
+                            messageElement.innerHTML = `${formatContent(message.content)}`;
+                            messageElement.classList.add('my-message');
+                            messagesDiv.appendChild(messageElement);
+                        }else if (message.sender === 'user') {
+                            const messageElement = document.createElement('div');
+                            messageElement.innerHTML = `${formatContent(message.content)}`;
+                            messageElement.classList.add('assistant-message');
+                            messagesDiv.appendChild(messageElement);}
                     });
                 } else {
-                    const messageElement = document.createElement('div');
-                    messageElement.innerHTML = `${formatContent(data.content)}`;
-                    messageElement.classList.add(data.sender === 'user' ? 'user-message' : 'my-message');
-                    messagesDiv.appendChild(messageElement);
+                    if (data.sender === 'assistant') {
+                        const messageElement = document.createElement('div');
+                        messageElement.innerHTML = `${formatContent(data.content)}`;
+                        messageElement.classList.add('assistant-message');
+                        messagesDiv.appendChild(messageElement);
+                    }
                 }
             };
 
